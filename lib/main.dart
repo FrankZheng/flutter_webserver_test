@@ -3,9 +3,11 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:get_ip/get_ip.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'web_server.dart';
+import 'package:get_ip/get_ip.dart';
 
 void main() => runApp(MyApp());
 
@@ -36,18 +38,16 @@ class _MyHomePageState extends State<MyHomePage> {
   void init() async {
     //copy all the files from static/ to document dir web/static in debug mode
     List<String> files = [
-      'ads.json',
-      'config.json',
-      'countdown_video.mp4',
-      'endcard.zip',
       'index.html',
       'main.js',
-      'style.css'
+      'style.css',
+      'countdown_video.mp4',
+      'endcard.zip',
     ];
     String documentDir = (await getApplicationDocumentsDirectory()).path;
     print('$documentDir');
     String webDirPath = p.join(documentDir, 'web');
-    String uploadDirPath = p.join(documentDir, 'web');
+    String uploadDirPath = p.join(webDirPath, 'upload');
 
     //create web dir and upload dir
     Directory webDir = await Directory(webDirPath).create(recursive: true);
@@ -56,13 +56,20 @@ class _MyHomePageState extends State<MyHomePage> {
     print('$webDir, $uploadDir');
 
     for (String filename in files) {
-      String targetFilePath = p.join(webDir.path, filename);
+      String targetFilePath = p.join(webDirPath, filename);
       print('$targetFilePath');
       var bytes = await rootBundle.load("static/$filename");
       await writeToFile(bytes, targetFilePath);
     }
 
-    startWebServer();
+    String localIp = await GetIp.ipAddress;
+    print('local ip: $localIp');
+
+    var indexFile = File(p.join(webDirPath, 'index.html'));
+    String adsJson = await rootBundle.loadString("static/ads.json");
+    String configJson = await rootBundle.loadString("static/config.json");
+
+    startWebServer(webDirPath, indexFile, adsJson, configJson);
   }
 
   //write to app path
